@@ -225,40 +225,23 @@ body {
 }
 
 
-.neon {
+/*.neon {
    display: inline-block;
    margin: 25%;
    width: 50%;
    height: 50%;
    border-radius: 50%;
 }
-
-.neon--lxo {
-  background: #B20903;
-  box-shadow: 0 0 4px 1px #B20903;
-/*   animation: glow-lxo 1.25s 0.3s infinite linear; */
-}
-.neon--lxs {
-  background: #00E9FC;
-  box-shadow: 0 0 4px 1px #00E9FC;
-/*   animation: glow-lxs 1.25s 0.3s infinite linear; */
+*/
+.selected {
+  box-shadow: 0 0 10px 2px #FFF;
+  /*transform: scale(1.05);*/
+  animation: glow 1.25s 0.3s infinite linear;
 }
 
-
-@keyframes glow-lxo{
+@keyframes glow{
  15%{
-    transform: scale(1.1);
-    background: #FF0505;
-    box-shadow: 0 0 10px 2px #FF7070;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px 2px #5AAAFB;
   }
 }
-
-@keyframes glow-lxs{
- 55%{
-    transform: scale(1.1);
-    background: #C6E9FC;
-    box-shadow: 0 0 10px 2px #C6E9FC;
-  }
-}
-
-

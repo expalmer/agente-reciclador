@@ -12,7 +12,6 @@
     this.$grid = $('#grid');
     this.dimensao = 0;
     this.addEventListeners();
-
     this.inicializar();
 
   }
@@ -25,9 +24,6 @@
 
     // Escolher a Dimensao do Vetor
     this.$init.on('click', '.button', function ( e ) {
-      self.$init.fadeOut();
-      self.$start.fadeIn();
-      self.$init.find('.button').removeClass('button-active');
       self.dimensao = $(this).addClass('button-active').data('dimensao');
       self.inicializarApp();
     });
@@ -53,14 +49,20 @@
 
   };
 
-
-
   Interface.fn.inicializarApp = function() {
 
-    this.app = new App(this.dimensao);
+    this.$init.fadeOut();
+    this.$start.fadeIn();
+    this.$init.find('.button').removeClass('button-active');
+
+    this.app = new App(this.dimensao, this.callback.bind(this) );
     this.app.inicializar();
     this.render();
 
+  };
+
+  Interface.fn.callback = function ( args ) {
+    this.render();
   };
 
   Interface.fn.render = function () {
@@ -70,28 +72,32 @@
   };
 
   Interface.fn.renderGrid = function () {
+
     var self = this;
     var html = [];
-    var vetor = this.app.getAmbiente();
+    var vetor = this.app.ambiente;
     var size = self.dimensao;
     _.each(vetor, function(x, ix){
       html.push('<div class="row">');
       _.each(x, function(y){
         var classe = y.name + ( y.name === "a" ? y.index : ""  );
-        html.push( '<div class="col"><span class="' + classe + '"></div>' );
+        var selected = y.selected ? " selected" : "";
+        html.push( '<div class="col"><span class="' + classe + selected +'"></div>' );
       });
       html.push('</div>');
     });
     this.$grid.removeClass("box-10 box-20 box-30").addClass("box-" + size);
     $.when( this.$grid.html( html.join("") )).then(function() {
-      console.log('grid ok');
+      // console.log('grid ok');
     });
+
   };
 
   Interface.fn.renderInfo = function () {
+
     var self = this;
     var html = [];
-    var vetor = this.app.getElementos();
+    var vetor = this.app.elementos;
 
     var infoTr = function ( index, name, b, c ) {
       var span = index !== false ? '<span>' + index + '</span>' : '';
@@ -121,15 +127,12 @@
     html.push( infoTr( false, vetor.lixo_seco[0].name, '-', vetor.lixo_seco.length) );
 
     $.when( this.$info.html( html.join("") )).then(function() {
-      console.log('info ok');
+      // console.log('info ok');
     });
 
   };
 
   context.Interface = Interface;
-
-  var app = new Interface();
-
 
 })(this);
 
