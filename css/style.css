@@ -11,6 +11,8 @@ body {
   background: #d9d9d9;
 }
 
+.hide { display: none; }
+
 .limiter {
   margin: 0 auto;
   padding: 20px;
@@ -95,10 +97,13 @@ body {
   background: url("../img/lixo-s.png");
   background-size: cover;
 }
-.a {
-  background: url("../img/agente.png");
-  background-size: cover;
-}
+.a { background: url("../img/agente.png"); background-size: cover; }
+.a0 { background: url("../img/a0.jpg"); background-size: cover; }
+.a1 { background: url("../img/a1.jpg"); background-size: cover; }
+.a2 { background: url("../img/a2.jpg"); background-size: cover; }
+.a3 { background: url("../img/a3.jpg"); background-size: cover; }
+.a4 { background: url("../img/a4.jpg"); background-size: cover; }
+.a5 { background: url("../img/a5.jpg"); background-size: cover; }
 
 
 /*  button Â */

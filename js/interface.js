@@ -4,34 +4,63 @@
 
   function Interface() {
 
-    this.$init = $('#init');
-    this.$grid = $('#grid');
     this.$info = $('#info');
+    this.$init = $('#init');
+    this.$start = $('#start');
+    this.$ciclo = $('#ciclo');
+    this.$reset = $('#reset');
+    this.$grid = $('#grid');
     this.dimensao = 0;
     this.addEventListeners();
+
+    this.inicializar();
+
   }
 
   Interface.fn = Interface.prototype;
 
-
   Interface.fn.addEventListeners = function () {
+
     var self = this;
+
+    // Escolher a Dimensao do Vetor
     this.$init.on('click', '.button', function ( e ) {
+      self.$init.fadeOut();
+      self.$start.fadeIn();
       self.$init.find('.button').removeClass('button-active');
       self.dimensao = $(this).addClass('button-active').data('dimensao');
+      self.inicializarApp();
+    });
+
+    // Resetar o jogo
+    this.$reset.on('click', function() {
       self.inicializar();
     });
+
+    // Novo Ciclo
+    this.$ciclo.on('click', function() {
+      self.app.novoCiclo();
+    });
+
   };
 
   Interface.fn.inicializar = function () {
-    this.app = new App(this.dimensao);
-    this.app.inicializar();
-    this.render();
+
+    this.$info.html('');
+    this.$init.find('.button').removeClass('button-active');
+    this.$init.fadeIn();
+    this.$start.fadeOut();
+
   };
 
 
+
   Interface.fn.inicializarApp = function() {
+
+    this.app = new App(this.dimensao);
     this.app.inicializar();
+    this.render();
+
   };
 
   Interface.fn.render = function () {
@@ -48,7 +77,8 @@
     _.each(vetor, function(x, ix){
       html.push('<div class="row">');
       _.each(x, function(y){
-        html.push( '<div class="col"><span class="' + y.name + '"></div>' );
+        var classe = y.name + ( y.name === "a" ? y.index : ""  );
+        html.push( '<div class="col"><span class="' + classe + '"></div>' );
       });
       html.push('</div>');
     });
@@ -63,9 +93,10 @@
     var html = [];
     var vetor = this.app.getElementos();
 
-    var infoTr = function ( index, a, b, c ) {
+    var infoTr = function ( index, name, b, c ) {
       var span = index !== false ? '<span>' + index + '</span>' : '';
-      return '<tr><td><strong class="' + a + '">' + span + '</strong></td><td>' + b + '</td><td>'+ c +'</td></tr>';
+      var classe = name + ( name === "a" ? index : ""  );
+      return '<tr><td><strong class="' + classe + '">' + span + '</strong></td><td>' + b + '</td><td>'+ c +'</td></tr>';
     }
 
     // agentes

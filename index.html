@@ -21,14 +21,20 @@
     </div>
   </div>
   <div class="content">
-    <p>
-      <span class="button-group" id="init">
+    <p id="init" class="hide">
+      <span class="button-group">
         <button class="button" data-dimensao="10">10 x 10</button>
         <button class="button" data-dimensao="20">20 x 20</button>
         <button class="button button-" data-dimensao="30">30 x 30</button>
       </span>
     </p>
-    <div class="box" id="grid"></div>
+    <div id="start" class="hide">
+      <p>
+        <button class="button button-success" id="ciclo">Novo Ciclo</button>
+        <button class="button button-error" id="reset">&times;</button>
+      </p>
+      <div class="box" id="grid"></div>
+    </div>
   </div>
   <script src="js/libs/lodash.js"></script>
   <script src="js/libs/jquery.js"></script>

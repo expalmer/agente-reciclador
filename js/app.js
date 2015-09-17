@@ -8,24 +8,27 @@
   function inicializarVetores() {
     _AMBIENTE = [];
     _ELEMENTOS  = {
-      agentes:   [],    // { name: "A", qtd_orga: 0, qtd_seco: 0, limit: 0 }
-      lixeira_orga: [], // { name: "O", qtd_lixo: 0, limit: 0 }
-      lixeira_seco: [], // { name: "S", qtd_lixo: 0, limit: 0 }
-      lixo_orga: [],    // { name: "LO" }
-      lixo_seco: []     // { name: "LS" }
+      agentes:   [],    // { name: "A", index: 0,  qtd_orga: 0, qtd_seco: 0, limit: 0 }
+      lixeira_orga: [], // { name: "O", index: 0,  qtd_lixo: 0, limit: 0 }
+      lixeira_seco: [], // { name: "S", index: 0,  qtd_lixo: 0, limit: 0 }
+      lixo_orga: [],    // { name: "LO"  }
+      lixo_seco: []     // { name: "LS"  }
     };
   };
 
 
   function App( dimensao ) {
+
     this.dimensao = dimensao;
+    this.ambiente = [];
+    this.elementos = {};
   }
 
   App.fn = App.prototype;
 
   App.fn.inicializar = function () {
 
-    inicializarVetores();
+    this.inicializarVetores();
     this.criarAmbiente();
     this.criarOsElementos();
     this.colocarLixosNoAmbiente();
@@ -34,37 +37,49 @@
 
   };
 
+  // Inicializar Vetor
+  App.fn.inicializarVetores = function () {
+    this.ambiente = [];
+    this.elementos = {
+      agentes:   [],    // { name: "A", qtd_orga: 0, qtd_seco: 0, limit: 0 }
+      lixeira_orga: [], // { name: "O", qtd_lixo: 0, limit: 0 }
+      lixeira_seco: [], // { name: "S", qtd_lixo: 0, limit: 0 }
+      lixo_orga: [],    // { name: "LO" }
+      lixo_seco: []     // { name: "LS" }
+    };
+  };
 
   // Ambiente
   App.fn.criarAmbiente = function () {
     // cria um ambiente vazio
     var tam = this.dimensao;
-      _AMBIENTE = Array.apply(0, Array(tam) ).map( function () {
+    this.ambiente = Array.apply(0, Array(tam) ).map( function () {
       return Array.apply(0, Array(tam) ).map( function() {
         return {
             name: null,
             index: null
           };
+        });
       });
-    });
   };
 
   App.fn.addElementoNoAmbiente = function ( item, coordenadas ) {
-    _AMBIENTE[coordenadas.x][coordenadas.y] = item;
+    this.ambiente[coordenadas.x][coordenadas.y] = item;
   };
 
   // get
   App.fn.getAmbiente = function ( x, y ) {
-    return x && y ? _AMBIENTE[x][y] : _AMBIENTE;
+    return x && y ? this.ambiente[x][y] : this.ambiente;
   };
 
   App.fn.getElementos = function ( name ) {
-    return name ? _ELEMENTOS[name] : _ELEMENTOS;
+    return name ? this.elementos[name] : this.elementos;
   };
 
   // Cria os Elementos
   App.fn.criarOsElementos = function () {
 
+    var self = this;
     var x = this.dimensao >> 3;
     var totais = {
       agentes: (x*2),
@@ -73,9 +88,10 @@
     };
 
     // Cria os Agentes
-    _.times( totais.agentes, function() {
-        _ELEMENTOS[ "agentes" ].push({
+    _.times( totais.agentes, function( i ) {
+        self.elementos[ "agentes" ].push({
           name: "a",
+          index: i,
           qtd_orga: 0,
           qtd_seco: 0,
           limit: totais.agentes
@@ -83,14 +99,16 @@
       });
 
     // Cria Lixeiras
-    _.times( totais.lixeiras, function() {
-        _ELEMENTOS[ "lixeira_orga" ].push({
+    _.times( totais.lixeiras, function( i ) {
+        self.elementos[ "lixeira_orga" ].push({
           name: "o",
+          index: i,
           qtd_lixo: 0,
           limit: totais.lixeiras
         });
-        _ELEMENTOS[ "lixeira_seco" ].push({
+        self.elementos[ "lixeira_seco" ].push({
           name: "s",
+          index: i,
           qtd_lixo: 0,
           limit: totais.lixeiras
         });
@@ -98,16 +116,11 @@
 
     // Cria Lixos
     _.times( totais.lixos, function() {
-        _ELEMENTOS[ "lixo_orga" ].push({ name: "lo" });
-        _ELEMENTOS[ "lixo_seco" ].push({ name: "ls" });
+        self.elementos[ "lixo_orga" ].push({ name: "lo" });
+        self.elementos[ "lixo_seco" ].push({ name: "ls" });
       });
   };
 
-  // Elementos
-  // App.fn.addCoordenadasNoElemento = function ( nome, index, coordenadas ) {
-  //   _ELEMENTOS[nome][index].x = coordenadas.x;
-  //   _ELEMENTOS[nome][index].y = coordenadas.y;
-  // }
 
   // sujar
   App.fn.colocarLixosNoAmbiente = function () {
@@ -160,12 +173,76 @@
         return { x: x, y: y };
       }
     }
-    // setTimeout(function(){ vazio = true; }, 5000);
+
+  };
+
+  // ==========================================================================
+  // ACOES DO JOGO
+  // ==========================================================================
+
+
+  App.fn.novoCiclo = function () {
+
+    console.log('Novo Ciclo');
+
+    if( this.osAgentesELixeirasEstaoComTotalDeLixo() ) {
+      console.log('FINAL');
+      return false;
+    }
+
+    this.selecinarUmAgente();
+
+    if( this.oAgenteEstaComAlgumSacoDeLixoCheio() ) {
+      this.levarAgenteAteALixeiraParaEsvaziar();
+      return false;
+    }
+
+    if ( this.temLixoNoRangeDoAgente() ) {
+      this.irAteOLixoEColocarNoSacoDeLixo();
+      return false;
+    }
+
+    if( this.andarAleatorioEVerificaSeEhATerceiraVez() ) {
+      this.caminhaAleatorioDireitaEsquerda();
+      return false;
+    }
+
+  };
+
+  App.fn.osAgentesELixeirasEstaoComTotalDeLixo = function () {
+
+  };
+
+  App.fn.selecinarUmAgente = function () {
+
+  };
+
+  App.fn.oAgenteEstaComAlgumSacoDeLixoCheio = function () {
+
+  };
+
+  App.fn.levarAgenteAteALixeiraParaEsvaziar = function () {
+
+  };
+
+  App.fn.temLixoNoRangeDoAgente = function () {
+
+  };
+
+  App.fn.irAteOLixoEColocarNoSacoDeLixo = function () {
+
+  };
+
+  App.fn.andarAleatorioEVerificaSeEhATerceiraVez = function () {
+
+  };
+
+  App.fn.caminhaAleatorioDireitaEsquerda = function () {
+
   };
 
 
   context.App = App;
-
 
 
 })(this);
