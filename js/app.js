@@ -15,9 +15,16 @@
     this.agente = false; //index do agente atual
     this.lixo = false;
 
+    this.eventoParaEmitir = 1;
+    this.eventosDosCiclos();
+    this.contaAleatorio = 0;
+
   }
 
+
   App.fn = App.prototype;
+
+  jQuery.extend(App.prototype, EventEmitter.prototype);
 
   App.fn.inicializar = function () {
 
@@ -46,11 +53,13 @@
   App.fn.criarAmbiente = function () {
     // cria um ambiente vazio
     var tam = this.dimensao;
-    this.ambiente = Array.apply(0, Array(tam) ).map( function () {
-      return Array.apply(0, Array(tam) ).map( function() {
+    this.ambiente = Array.apply(0, Array(tam) ).map( function ( a, x ) {
+      return Array.apply(0, Array(tam) ).map( function( b, y ) {
         return {
             name: null,
-            index: null
+            index: null,
+            x: x,
+            y: y
           };
         });
       });
@@ -84,6 +93,12 @@
           },
           qtd_seco_limit: function() {
             return totais.agentes === this.qtd_seco;
+          },
+          lo: function() {
+            this.qtd_orga += 1;
+          },
+          ls: function() {
+            this.qtd_seco += 1;
           }
         });
       });
@@ -192,8 +207,9 @@
   };
 
   App.fn.selecionarElementosNoAmbiente = function ( vetor ) {
-    // limpa
+
     var self = this;
+    var vetor = _.clone(vetor);
 
     this.ambiente = _.map( this.ambiente, function( x ) {
       return _.map( x, function ( y ) {
@@ -203,7 +219,9 @@
     });
 
     _.each( vetor, function( item ) {
-      self.ambiente[item[0]][item[1]].selected = true;
+      if( typeof item.x !== "undefined" ) {
+        self.ambiente[item.x][item.y].selected = true;
+      }
     });
 
 
@@ -234,34 +252,70 @@
   // ==========================================================================
 
   App.fn.novoCiclo = function () {
-
     ++CICLO;
+    console.log('CICLO', CICLO);
+    this.emit( this.eventoParaEmitir );
+  };
 
-    console.log('Ciclo', CICLO );
+  App.fn.eventosDosCiclos = function () {
 
-    if( this.osAgentesELixeirasEstaoComTotalDeLixo() ) {
-      console.log('FINAL DO PROGRAMA');
-      return false;
-    }
+    this.on('1', function() {
+      if( this.osAgentesELixeirasEstaoComTotalDeLixo() ) {
+        console.log('FINAL DO PROGRAMA');
+        return false;
+      }
+      this.emit('2');
+    }.bind(this));
 
-    this.selecionarUmAgente();
+    this.on('2', function() {
+      this.selecionarUmAgente();
+      this.emit('3');
+    }.bind(this));
 
-    if( this.oAgenteEstaComAlgumSacoDeLixoCheio() ) {
+    this.on('3', function() {
+      if( this.oAgenteEstaComAlgumSacoDeLixoCheio() ) {
+        this.emit('4');
+        return;
+      }
+      this.emit('5');
+    }.bind(this));
+
+    this.on('4', function() {
       this.levarAgenteAteALixeiraParaEsvaziar();
-      return false;
-    }
+      // this.emit('2');
+      this.eventoParaEmitir = 2;
+    }.bind(this));
 
-    if ( this.temLixoNoRangeDoAgente() ) {
-      this.irAteOLixoEColocarNoSacoDeLixo();
-      return false;
-    }
+    this.on('5', function() {
+      if ( this.temLixoNoRangeDoAgente() ) {
+        this.emit('6');
+        return;
+      }
+      this.emit('7');
+    }.bind(this));
 
-    if( this.andarAleatorioEVerificaSeEhATerceiraVez() ) {
+    this.on('6', function() {
+      this.vaiAteOLixoEColocarNoSaco();
+      this.eventoParaEmitir = 3;
+      console.log('Agente colocou no seu saco');
+    }.bind(this));
+
+    this.on('7', function() {
+      if( this.andarAleatorioEVerificaSeEhATerceiraVez() ) {
+        this.emit('8');
+        return;
+      }
+      this.eventoParaEmitir = 3;
+    }.bind(this));
+
+    this.on('8', function() {
       this.caminhaAleatorioDireitaEsquerda();
-      return false;
-    }
+      this.emit('5');
+    }.bind(this));
 
   };
+
+  // FUNCOES QUE FAZER A TRETA
 
   App.fn.osAgentesELixeirasEstaoComTotalDeLixo = function () {
 
@@ -279,13 +333,16 @@
 
     var lixoTotal = this.elementos.lixo_orga.length + this.elementos.lixo_seco.length;
 
-    return ( lixoA + lixoO + lixoS ) === lixoTotal;
+    var res = ( lixoA + lixoO + lixoS ) === lixoTotal;
+
+    console.log('Agentes + Lixeiras = Total de Lixo ?', res );
+
+    return res;
 
   };
 
   App.fn.selecionarUmAgente = function () {
 
-    console.log('selecionarUmAgente');
 
     var idx = _.random(0, this.elementos.agentes.length - 1);
 
@@ -298,17 +355,21 @@
 
     var agente = this.getAgenteAtual();
 
-    this.selecionarElementosNoAmbiente( [ [ agente.x, agente.y ] ] );
+    this.selecionarElementosNoAmbiente( [ agente ] );
 
     this.renderInterface();
 
+    console.log('Selecionei o Agente [', agente.index,']' );
   };
 
   App.fn.oAgenteEstaComAlgumSacoDeLixoCheio = function () {
-    console.log('oAgenteEstaComAlgumSacoDeLixoCheio');
 
     var agente = this.getAgenteAtual();
-    return agente.qtd_orga_limit() || agente.qtd_seco_limit();
+    var res = agente.qtd_orga_limit() || agente.qtd_seco_limit();
+
+    console.log('Agente [', agente.index,'] está com algum saco cheio ?', res);
+
+    return res;
 
   };
 
@@ -317,11 +378,7 @@
 
   };
 
-
-
   App.fn.temLixoNoRangeDoAgente = function () {
-
-    console.log('temLixoNoRangeDoAgente');
 
     var self = this;
     var agente = this.getAgenteAtual();
@@ -330,7 +387,7 @@
       if( a && a.name === 'lo' || a.name === 'ls' ) {
         return [ 0, a ];
       }
-      if ( a && a.name === null && b.name === 'lo' || b.name === 'ls' ) {
+      if ( a && ( a.name === null && b.name === 'lo' ) || (a.name === null && b.name === 'ls') ) {
         return [ 1, b ];
       }
       return false;
@@ -346,30 +403,87 @@
             })
             .reduce( function( acc, curr ) {
               return acc[0] < curr[0] ? acc : curr;
-            },[])
-            .reduce( function( acc, curr ) {
-              return [curr];
             },[]);
 
-     return this.lixo = lixo.shift();
+    var res = this.lixo = lixo.pop();
+
+    console.log('Algum lixo no Range do Agente [', agente.index,'] ?', !!res);
+
+    return res;
 
   };
 
-  App.fn.irAteOLixoEColocarNoSacoDeLixo = function () {
+  App.fn.vaiAteOLixoEColocarNoSaco = function () {
 
+    var self = this;
     var agente = this.getAgenteAtual();
     var lixo   = this.lixo;
-    this.selecionarElementosNoAmbiente( [ [ agente.x, agente.y ], [ lixo.x, lixo.y ] ] );
-    this.renderInterface();
+
+    this.selecionarElementosNoAmbiente( [ agente, lixo ] );
+
+    self.renderInterface();
+
+    self.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
+    agente[lixo.name](); // funcao que soma +1
+    agente.x = lixo.x; //
+    agente.y = lixo.y; //
+    self.ambiente[lixo.x][lixo.y] = _.clone( agente );
+
+    setTimeout(function () {
+      self.renderInterface();
+      console.log('Agente [', agente.index,'] pega o lixo!');
+    }, 2000);
 
   };
 
   App.fn.andarAleatorioEVerificaSeEhATerceiraVez = function () {
-    // console.log('andarAleatorioEVerificaSeEhATerceiraVez');
+
+    var self = this;
+    var agente = this.getAgenteAtual();
+    var ranges = this.getRange( agente.x, agente.y );
+
+    this.selecionarElementosNoAmbiente( ranges );
+    this.renderInterface();
+
+    var loop = true;
+    var idx,
+        pos;
+
+    while( loop ) {
+      idx = _.random(0,7);
+      pos = ranges[idx];
+      if( pos && pos.name === null ) {
+        loop = false;
+      }
+    }
+
+    this.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
+    agente.x = pos.x;
+    agente.y = pos.y;
+
+    this.ambiente[agente.x][agente.y] = agente;
+
+    setTimeout(function () {
+      self.selecionarElementosNoAmbiente( [ agente , pos ] );
+      self.renderInterface();
+    }, 2000);
+
+    this.contaAleatorio++;
+
+    var res = this.contaAleatorio === 3;
+    if( res ) {
+      this.contaAleatorio = 0;
+    }
+
+    console.log('Anda Aleatório pela', this.contaAleatorio, 'vez' );
+
+    return res;
+
   };
 
   App.fn.caminhaAleatorioDireitaEsquerda = function () {
-    // console.log('caminhaAleatorioDireitaEsquerda');
+    console.log('caminha Aleatorio Direita Esquerda Doido');
+    return false;
   };
 
   context.App = App;
