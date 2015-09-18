@@ -99,15 +99,16 @@
     var html = [];
     var vetor = this.app.elementos;
 
-    var infoTr = function ( index, name, b, c ) {
+    var infoTr = function ( index, name, b, c, vetor ) {
       var span = index !== false ? '<span>' + index + '</span>' : '';
       var classe = name + ( name === "a" ? index : ""  );
-      return '<tr><td><strong class="' + classe + '">' + span + '</strong></td><td>' + b + '</td><td>'+ c +'</td></tr>';
+      var selected = vetor && vetor.selected ? " selectedx" : "";
+      return '<tr><td><strong class="' + classe + selected + '">' + span + '</strong></td><td>' + b + '</td><td>'+ c +'</td></tr>';
     }
 
     // agentes
     _.each( vetor.agentes, function( v, k ){
-      html.push( infoTr( k, v.name, v.qtd_orga, v.qtd_seco ) );
+      html.push( infoTr( k, v.name, v.qtd_orga, v.qtd_seco, v) );
     });
 
     // lixeira_orga

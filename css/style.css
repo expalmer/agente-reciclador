@@ -235,8 +235,10 @@ body {
 */
 .selected {
   box-shadow: 0 0 10px 2px #FFF;
-  /*transform: scale(1.05);*/
   animation: glow 1.25s 0.3s infinite linear;
+}
+.selectedx {
+  box-shadow: 0 0 10px 2px #5AAAFB;
 }
 
 @keyframes glow{
