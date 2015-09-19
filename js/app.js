@@ -18,7 +18,7 @@
     this.eventoParaEmitir = 1;
     this.eventosDosCiclos();
     this.contaAleatorio = 0;
-
+    console.log(1);
   }
 
 
