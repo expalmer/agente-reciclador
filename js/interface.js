@@ -11,6 +11,7 @@
     this.$reset = $('#reset');
     this.$grid = $('#grid');
     this.dimensao = 0;
+    this.debug = true;
     this.addEventListeners();
     this.inicializar();
 
@@ -80,9 +81,11 @@
     _.each(vetor, function(x, ix){
       html.push('<div class="row">');
       _.each(x, function(y){
-        var classe = y.name + ( y.name === "a" ? y.index : ""  );
+        var name = y.name ? y.name.toLowerCase() : '';
+        var classe = name + ( name === "agente" ? y.index : ""  );
         var selected = y.selected ? " selected" : "";
-        html.push( '<div class="col"><span class="' + classe + selected +'"></div>' );
+        var debug = self.debug ? self.debugSpan(y) : '';
+        html.push( '<div class="col">' + debug + '<span class="' + classe + selected +'"></div>' );
       });
       html.push('</div>');
     });
@@ -93,6 +96,24 @@
 
   };
 
+  Interface.fn.debugSpan= function ( y ) {
+    var res = [];
+    switch(y.name){
+    case AGENTE: 
+      res.push( y.lixo[LIXO_ORGANICO].length); 
+      res.push( y.lixo[LIXO_SECO].length); 
+    break;
+    case LIXEIRA_ORGANICO:
+    case LIXEIRA_SECO:
+      res.push( y.lixo.length ); 
+    break;
+    }
+    res = res.map(function(x){
+      return '<span>' + x + '</span>';
+    });
+    return res.length ? '<div class="debug">' + res.join('') + '</div>' : '';
+  }
+
   Interface.fn.renderInfo = function () {
 
     var self = this;
@@ -100,32 +121,33 @@
     var vetor = this.app.elementos;
 
     var infoTr = function ( index, name, b, c, vetor ) {
+      var name = name.toLowerCase();
       var span = index !== false ? '<span>' + index + '</span>' : '';
-      var classe = name + ( name === "a" ? index : ""  );
+      var classe = name + ( name === "agente" ? index : ""  );
       var selected = vetor && vetor.selected ? " selectedx" : "";
       return '<tr><td><strong class="' + classe + selected + '">' + span + '</strong></td><td>' + b + '</td><td>'+ c +'</td></tr>';
     }
 
     // agentes
-    _.each( vetor.agentes, function( v, k ){
-      html.push( infoTr( k, v.name, v.qtd_orga, v.qtd_seco, v) );
+    _.each( vetor[AGENTE], function( v, k ){
+      html.push( infoTr( k, v.name, v.lixo[LIXO_ORGANICO].length, v.lixo[LIXO_SECO].length, v) );
     });
 
     // lixeira_orga
-    _.each( vetor.lixeira_orga, function( v, k ){
-      html.push( infoTr( k, v.name, v.qtd_lixo, '-' ) );
+    _.each( vetor[LIXEIRA_ORGANICO], function( v, k ){
+      html.push( infoTr( k, v.name, v.lixo.length, '-' ) );
     });
 
     // lixeira_seco
-    _.each( vetor.lixeira_seco, function( v, k ){
-      html.push( infoTr( k, v.name, '-', v.qtd_lixo ) );
+    _.each( vetor[LIXEIRA_SECO], function( v, k ){
+      html.push( infoTr( k, v.name, '-', v.lixo.length ) );
     });
 
     // lixo_orga
-    html.push( infoTr( false, vetor.lixo_orga[0].name, vetor.lixo_orga.length ,'-') );
+    html.push( infoTr( false, "lixo_organico", vetor[LIXO_ORGANICO].length ,'-') );
 
     // lixo_seco
-    html.push( infoTr( false, vetor.lixo_seco[0].name, '-', vetor.lixo_seco.length) );
+    html.push( infoTr( false, "lixo_seco", '-', vetor[LIXO_SECO].length) );
 
     $.when( this.$info.html( html.join("") )).then(function() {
       // console.log('info ok');

@@ -39,12 +39,21 @@
   <script src="js/libs/lodash.js"></script>
   <script src="js/libs/jquery.js"></script>
   <script src="js/libs/events.js"></script>
+  <script src="js/constantes.js"></script>
   <script src="js/app.js"></script>
   <script src="js/interface.js"></script>
   <script>
+    window.z = function() {};
     $(function() {
       var app = new Interface();
-      $('#init').find('button').eq(0).trigger('click');
+
+      $('#init').find('button').eq(2).trigger('click');
+
+      /*window.z = function() {
+        setInterval(function(){
+        $('#ciclo').trigger('click');
+      },100);  
+      }*/
     });
   </script>
 </body>
