@@ -246,6 +246,35 @@
     return Math.sqrt( (x2-=x1)*x2 + (y2-=y1)*y2 );
   }
 
+  
+  // mostra rota até a lixeira, passar o agente e a lixeira 
+  App.fn.funcaoPontos = function ( origem , destino ){
+    var orig = origem; //copia o array origem e destino
+    var dest = destino; //[9,4];
+    var movimentos = [];
+    while(orig[0] != dest[0] && orig[1] != dest[1]){ //loop para n parar até terminar simulação
+      while(orig[0] != dest[0]){ //loop para n terminar até o x orig for o mesmo de dest
+        if(orig[0] > dest[0]){ 
+          orig[0]-=1;
+          movimentos.push([orig[0],orig[1]]);
+        }else{
+          orig[0]+=1;
+          movimentos.push([orig[0],orig[1]]);
+        }
+      }
+      while(orig[1] != dest[1]){ //loop para n terminar até o y orig for o mesmo de dest
+        if(orig[1] > dest[1]){ 
+          orig[1]-=1;
+          movimentos.push([orig[0],orig[1]]);
+        }else{
+          orig[1]+=1;
+          movimentos.push([orig[0],orig[1]]);
+        }
+      }
+    }
+    return movimentos;
+  };
+
   // ==========================================================================
   // ACOES DO JOGO
   // ==========================================================================
