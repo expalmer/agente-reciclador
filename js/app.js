@@ -3,7 +3,7 @@
   'use strict';
 
   var CICLO = 0;
-  
+
   function App( dimensao, renderInterface ) {
 
     this.dimensao = dimensao;
@@ -17,7 +17,8 @@
     this.emitirEVENTO = 'onSelecionarAgente';
     this.eventosDosCiclos();
     this.contaAleatorio = 0;
-    console.log(1);
+    this.contaLateral = 0;
+
   }
 
 
@@ -71,17 +72,29 @@
   App.fn.criarOsElementos = function () {
 
     var self = this;
-    var x = this.dimensao >> 3;
-    var totais = {
-      agentes: (x*2),
-      lixeiras: (x*1),
-      lixos: (x*4)
+    var obj = {
+      "10": {
+        agentes: 2,
+        lixeiras: 2,
+        lixos: 6
+      },
+      "20": {
+        agentes: 3,
+        lixeiras: 3,
+        lixos: 12
+      },
+      "30": {
+        agentes: 4,
+        lixeiras: 4,
+        lixos: 20
+      }
     };
 
-    var limiteLixoPorAgente = totais.lixos / totais.agentes;
-    var limiteLixoPorLixeira = totais.lixos / totais.lixeiras;
+    var totais = obj[this.dimensao];
 
-    console.log(totais)
+    var limiteLixo = totais.lixos / totais.agentes;
+
+    console.log(totais);
 
     // Cria os Agentes
     _.times( totais.agentes, function( i ) {
@@ -94,8 +107,8 @@
           },
           selected: false,
           lixoCheio: function() {
-            return this.lixo[LIXO_ORGANICO].length === limiteLixoPorAgente ? LIXO_ORGANICO :
-                  ( this.lixo[LIXO_SECO].length === limiteLixoPorAgente ? LIXO_SECO : false ); 
+            return this.lixo[LIXO_ORGANICO].length === limiteLixo ? LIXO_ORGANICO :
+                  ( this.lixo[LIXO_SECO].length === limiteLixo ? LIXO_SECO : false );
           }
         });
       });
@@ -108,7 +121,7 @@
           lixo: [],
           selected: false,
           cheia: function() {
-            return limiteLixoPorLixeira === this.lixo.length;
+            return limiteLixo === this.lixo.length;
           }
         });
         self.elementos[ LIXEIRA_SECO ].push({
@@ -117,7 +130,7 @@
           lixo: [],
           selected: false,
           cheia: function() {
-            return limiteLixoPorLixeira === this.lixo.length;
+            return limiteLixo === this.lixo.length;
           }
         });
       });
@@ -127,6 +140,8 @@
         self.elementos[ LIXO_ORGANICO ].push({ name: LIXO_ORGANICO });
         self.elementos[ LIXO_SECO ].push({ name: LIXO_SECO });
       });
+
+    return false;
   };
 
 
@@ -201,7 +216,7 @@
 
     var self = this;
     if( false === _.isArray( vetor ) ) vetor = [vetor];
-  
+
     this.ambiente = _.map( this.ambiente, function( x ) {
       return _.map( x, function ( y ) {
         y.selected = false;
@@ -246,15 +261,15 @@
     return Math.sqrt( (x2-=x1)*x2 + (y2-=y1)*y2 );
   }
 
-  
-  // mostra rota até a lixeira, passar o agente e a lixeira 
-  App.fn.funcaoPontos = function ( origem , destino ){
+
+  // mostra rota até a lixeira, passar o agente e a lixeira
+  App.fn.funcaoPontos = function ( origem , destino ) {
     var orig = origem; //copia o array origem e destino
-    var dest = destino; 
+    var dest = destino;
     var movimentos = [];
     while(orig[0] != dest[0] && orig[1] != dest[1]){ //loop para n parar até terminar simulação
       while(orig[0] != dest[0]){ //loop para n terminar até o x orig for o mesmo de dest
-        if(orig[0] > dest[0] && this.ambiente[orig[0]-1][orig[1]].name == null){ 
+        if(orig[0] > dest[0] && this.ambiente[orig[0]-1][orig[1]].name == null){
           orig[0]-=1;
           movimentos.push([orig[0],orig[1]]);
         }else if(this.ambiente[orig[0]+1][orig[1]].name == null){
@@ -263,7 +278,7 @@
         }
       }
       while(orig[1] != dest[1]){ //loop para n terminar até o y orig for o mesmo de dest
-        if(orig[1] > dest[1] && this.ambiente[orig[0]][orig[1]-1].name == null){ 
+        if(orig[1] > dest[1] && this.ambiente[orig[0]][orig[1]-1].name == null){
           orig[1]-=1;
           movimentos.push([orig[0],orig[1]]);
         }else if(this.ambiente[orig[0]][orig[1]+1].name == null){
@@ -276,6 +291,34 @@
     return movimentos;
   };
 
+  App.fn.andarAteLixeira = function ( movimentos, callback ) {
+
+    this.selecionarAgente();
+
+    var self = this;
+    var agente = this.getAgenteAtual();
+    var time = 0;
+    var timout = 1000;
+    var total = movimentos.length - 1;
+
+    _.each(movimentos, function( arr, index ) {
+      time += timout;
+      setTimeout( move.bind(self, arr, agente, index === total ), time );
+    });
+
+    function move( arr, agente, isLast ) {
+      this.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
+      agente.x = arr.x;
+      agente.y = arr.y;
+      this.ambiente[agente.x][agente.y] = agente;
+      this.selecionarElementosNoAmbiente( agente );
+      if( isLast ) {
+        callback();
+      }
+    }
+
+  };
+
   // ==========================================================================
   // ACOES DO JOGO
   // ==========================================================================
@@ -283,7 +326,14 @@
   App.fn.novoCiclo = function () {
     ++CICLO;
     console.log('CICLO', CICLO);
-    this.emit( this.emitirEVENTO );
+    this.andarAteLixeira([
+      { x:9, y:0 },
+      { x:8, y:0 },
+      { x:7, y:0 },{ x:7, y:1 }, { x:7, y:2 }, { x:7, y:3 },
+      { x:6, y:3} ,{ x:5, y:3 }, { x:4, y:3 } ], function() {
+        console.log('ACABOU');
+      });
+    // this.emit( this.emitirEVENTO );
   };
 
   App.fn.eventosDosCiclos = function () {
@@ -294,38 +344,60 @@
     }.bind(this));
 
     this.on('onTemLixoNoRange', function() {
+
+      this.emitirEVENTO = 'onTemLixoNoRange';
+
       if ( this.temLixoNoRange() ) {
         this.recolherLixo();
         if ( this.ambienteLimpo() ) {
           this.fim();
           this.emitirEVENTO = 0;
-          return false;
-        } else if ( this.agenteDeSacoCheio() ){
+          return;
+        }
+        if ( this.agenteDeSacoCheio() ){
           this.esvaziarSaco();
         }
-      } else {
-        if ( this.contaAleatorio === 3 ) {
-         this.andarLateralmente();
-        } else {
-          this.andarAleatorimente();
-        }
+        return;
       }
-      this.emitirEVENTO = 'onTemLixoNoRange';
+
+      if ( this.contaAleatorio === 3 ) {
+        this.andarLateralmente();
+        return;
+      }
+
+      if( this.contaLateral === 3 ) {
+        this.emit('onSelecionarAgente');
+        return;
+      }
+
+      this.andarAleatorimente();
+
 
     }.bind(this));
 
-  }; 
+  };
 
   App.fn.selecionarAgente= function() {
-    
-    var idx = _.random(0, this.elementos[AGENTE].length - 1);
+
+    // seleciona um agente excluindo o agente atual
+
+    this.contaAleatorio = 0;
+    this.contaLateral = 0;
+    var agente = this.getAgenteAtual() || false;
+    var max = this.elementos[AGENTE].length - 1;
+    var idx = _.random(0, max);
+    if( agente && agente.index === idx ) {
+      while( agente.index === idx ) {
+        idx = _.random(0, max);
+      }
+    }
 
     this.agenteINDEX = idx;
     this.elementos[AGENTE] = this.elementos[AGENTE].map(function( v, k ) {
       k === idx ? v.selected = true : v.selected = false;
       return v;
     });
-    
+
     var agente = this.getAgenteAtual();
 
     this.selecionarElementosNoAmbiente( agente );
@@ -371,7 +443,7 @@
   };
 
   App.fn.recolherLixo = function () {
-    
+
     var agente = this.getAgenteAtual();
     var lixo   = this.lixo;
 
@@ -408,7 +480,9 @@
 
 
   App.fn.andarAleatorimente = function () {
-    
+
+    this.contaAleatorio++;
+
     var agente = this.getAgenteAtual();
     var ranges = this.getRange( agente.x, agente.y );
 
@@ -423,7 +497,7 @@
       if ( index === array.length - 1 ) acc = acc[_.random(0,acc.length -1)];
       return acc;
     },[]);
-    
+
     this.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
     agente.x = pos.x;
     agente.y = pos.y;
@@ -434,15 +508,15 @@
       this.selecionarElementosNoAmbiente( [ agente, pos ] );
     }.bind(this), 1000);
 
-    this.contaAleatorio++;
-  
     console.log('Anda Aleatório pela', this.contaAleatorio, 'vez' );
 
   };
 
   App.fn.andarLateralmente = function () {
 
+    this.contaLateral++;
     this.contaAleatorio = 0;
+
     var agente = this.getAgenteAtual();
     var ranges = this.ambiente[agente.x];
     var left, right, pos, idx;
@@ -451,7 +525,7 @@
       else acc = [];
       return acc;
     };
-    
+
     left = ranges.slice(0,agente.y).reduce( reducer, [] );
     right = ranges.slice(agente.y+1).reverse().reduce( reducer, [] );
     ranges = left.concat(right);
@@ -468,6 +542,8 @@
 
     setTimeout(function() { this.selecionarElementosNoAmbiente( agente ); }.bind(this), 1300);
 
+    console.log('Anda Lateral pela', this.contaLateral, 'vez' );
+
   };
 
   App.fn.esvaziarSaco = function () {
@@ -480,21 +556,21 @@
 
     // pega a lixeira disponivel mais proxima
     var lixeira = this.elementos[tipoLixeira]
-                  .filter(function(a){
-                    return a.cheia() === false; // excluimos as lixeiras cheias
-                  })
                   .reduce(function( a, b ) {
                     return this.distanciaEntreDoisPontos(agente, a) < this.distanciaEntreDoisPontos(agente, b) ? a : b;
                   }.bind(this));
 
     _.each(agente.lixo[tipoLixo].splice(0), function( lixo ) {
-      this.elementos[tipoLixeira][lixeira.index].lixo.push(lixo);  
+      this.elementos[tipoLixeira][lixeira.index].lixo.push(lixo);
     }.bind(this));
-    
-    // passa os lixos do agente para lixeira
-    //var lixeira = this.elementos[tipoLixeira].push( agente.lixo[tipoLixo].splice(0) )
+
+
+    // var x = this.funcaoPontos( [ agente.x, agente.y ], [ lixeira.x, lixeira.y ] );
+
+    // console.log(x);
+
     this.selecionarElementosNoAmbiente( agente );
-  }; 
+  };
 
   App.fn.fim = function () {
     this.novoCiclo = function() {};
@@ -502,7 +578,7 @@
 
   };
 
-  
+
   context.App = App;
 
 
