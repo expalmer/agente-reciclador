@@ -19,7 +19,7 @@
     this.contaAleatorio = 0;
     this.contaLateral = 0;
 
-    this.lixeirasProximas = [];
+    this.lixeirasParaVisitar = [];
 
   }
 
@@ -260,7 +260,7 @@
     var y1 = obj1.y;
     var x2 = obj2.x;
     var y2 = obj2.y;
-    return Math.sqrt( (x2-=x1)*x2 + (y2-=y1)*y2 );
+    return Math.round( Math.sqrt( (x2-=x1)*x2 + (y2-=y1)*y2 ) );
   }
 
 
@@ -324,16 +324,16 @@
   // ==========================================================================
 
   App.fn.novoCiclo = function () {
+
+    if( !this.emitirEVENTO ) {
+      console.log('....aguarde....');
+      return false;
+    }
+
     ++CICLO;
     console.log('CICLO', CICLO);
-    // this.andarAteLixeira([
-    //   { x:9, y:0 },
-    //   { x:8, y:0 },
-    //   { x:7, y:0 },{ x:7, y:1 }, { x:7, y:2 }, { x:7, y:3 },
-    //   { x:6, y:3} ,{ x:5, y:3 }, { x:4, y:3 } ], function() {
-    //     console.log('ACABOU');
-    //   });
     this.emit( this.emitirEVENTO );
+
   };
 
   App.fn.eventosDosCiclos = function () {
@@ -371,7 +371,7 @@
           return;
         }
         if ( this.agenteDeSacoCheio() ){
-          this.ordenaLixeirasPorProximidade();
+          this.criarLixeirasParaVisitar();
           this.emit('onAndarAteUmaLixeira');
         }
         return;
@@ -495,7 +495,7 @@
     return res;
   };
 
-  App.fn.ordenaLixeirasPorProximidade = function () {
+  App.fn.criarLixeirasParaVisitar = function () {
 
     var self = this;
     var agente = this.getAgenteAtual();
@@ -503,25 +503,34 @@
     var tipoLixo = agente.lixoCheio();
     var tipoLixeira = tipoLixo === LIXO_ORGANICO ? LIXEIRA_ORGANICO : LIXEIRA_SECO;
 
-    // Insere a distancia entre cada lixeira e o agente
-    this.lixeirasProximas = _.map(this.elementos[tipoLixeira],
+    this.lixeirasParaVisitar = _.clone(this.elementos[tipoLixeira]);
+
+  };
+
+  App.fn.ordenarLixeirasParaVisitarPorProximidade = function () {
+    var agente = this.getAgenteAtual();
+    this.lixeirasParaVisitar = _.map(this.lixeirasParaVisitar,
       function( item ) {
-        item.distancia = self.distanciaEntreDoisPontos(agente, item);
+        item.distancia = this.distanciaEntreDoisPontos(agente, item);
         return item;
-      });
-    // ordena pela distancia
-    _.sortBy( this.lixeirasProximas, 'distancia' );
-
-    console.log(this.lixeirasProximas);
-
-    console.log('Ordena Lixeiras', tipoLixeira ,' por Proximidade');
-
+      }.bind(this));
+    this.lixeirasParaVisitar = _.sortBy( this.lixeirasParaVisitar, 'distancia' );
   };
 
   App.fn.andarAteUmaLixeira = function ( callback ) {
 
+    this.ordenarLixeirasParaVisitarPorProximidade();
+
+    _.each(this.lixeirasParaVisitar, function(l) {
+      console.log('=>', l.x,l.y, l.distancia );
+    });
+
+
     var agente  = this.getAgenteAtual();
-    var lixeira = this.lixeirasProximas.shift();
+    var lixeira = this.lixeirasParaVisitar.shift();
+
+    console.log(agente.name, agente.x, agente.y);
+    console.log(lixeira.name, lixeira.x, lixeira.y);
 
     var pontos = new DoisPontos( agente, lixeira, this.ambiente );
     var rotas = pontos.getRotas();
