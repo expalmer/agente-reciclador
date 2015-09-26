@@ -19,6 +19,8 @@
     this.contaAleatorio = 0;
     this.contaLateral = 0;
 
+    this.lixeirasProximas = [];
+
   }
 
 
@@ -291,14 +293,12 @@
     return movimentos;
   };
 
-  App.fn.andarAteLixeira = function ( movimentos, callback ) {
-
-    this.selecionarAgente();
+  App.fn.passoAPassoAteLixeira = function ( movimentos, callback ) {
 
     var self = this;
     var agente = this.getAgenteAtual();
     var time = 0;
-    var timout = 1000;
+    var timout = 300;
     var total = movimentos.length - 1;
 
     _.each(movimentos, function( arr, index ) {
@@ -326,23 +326,39 @@
   App.fn.novoCiclo = function () {
     ++CICLO;
     console.log('CICLO', CICLO);
-    this.andarAteLixeira([
-      { x:9, y:0 },
-      { x:8, y:0 },
-      { x:7, y:0 },{ x:7, y:1 }, { x:7, y:2 }, { x:7, y:3 },
-      { x:6, y:3} ,{ x:5, y:3 }, { x:4, y:3 } ], function() {
-        console.log('ACABOU');
-      });
-    // this.emit( this.emitirEVENTO );
+    // this.andarAteLixeira([
+    //   { x:9, y:0 },
+    //   { x:8, y:0 },
+    //   { x:7, y:0 },{ x:7, y:1 }, { x:7, y:2 }, { x:7, y:3 },
+    //   { x:6, y:3} ,{ x:5, y:3 }, { x:4, y:3 } ], function() {
+    //     console.log('ACABOU');
+    //   });
+    this.emit( this.emitirEVENTO );
   };
 
   App.fn.eventosDosCiclos = function () {
 
+    // Evento: Selecionar Agente
     this.on('onSelecionarAgente', function() {
       this.selecionarAgente();
       this.emit('onTemLixoNoRange');
     }.bind(this));
 
+    // Evento: Andar até Lixeira
+    this.on('onAndarAteUmaLixeira', function() {
+      console.log('onAndarAteUmaLixeira');
+      // aguarda chegar ate a lixeira
+      this.andarAteUmaLixeira( function( lixeira ) {
+        if( this.tentarEsvaziarSaco( lixeira ) ) {
+          this.emitirEVENTO = 'onTemLixoNoRange';
+        } else {
+          this.emitirEVENTO = 'onAndarAteUmaLixeira';
+        }
+      }.bind(this));
+      this.emitirEVENTO = 0;
+    }.bind(this));
+
+    // Evento: Tem Lixo no Range
     this.on('onTemLixoNoRange', function() {
 
       this.emitirEVENTO = 'onTemLixoNoRange';
@@ -355,7 +371,8 @@
           return;
         }
         if ( this.agenteDeSacoCheio() ){
-          this.esvaziarSaco();
+          this.ordenaLixeirasPorProximidade();
+          this.emit('onAndarAteUmaLixeira');
         }
         return;
       }
@@ -465,17 +482,76 @@
 
   };
 
-   App.fn.ambienteLimpo= function() {
+  App.fn.ambienteLimpo= function() {
     var res = this.elementos[LIXO_ORGANICO].length === 0 &&  this.elementos[LIXO_SECO].length === 0;
     console.log('Ambiente Limpo ?', res );
     return res;
   };
 
-
+  // Lixeiras
   App.fn.agenteDeSacoCheio= function() {
     var res = this.getAgenteAtual().lixoCheio();
     console.log('Agente está com algum saco cheio ?', res);
     return res;
+  };
+
+  App.fn.ordenaLixeirasPorProximidade = function () {
+
+    var self = this;
+    var agente = this.getAgenteAtual();
+
+    var tipoLixo = agente.lixoCheio();
+    var tipoLixeira = tipoLixo === LIXO_ORGANICO ? LIXEIRA_ORGANICO : LIXEIRA_SECO;
+
+    // Insere a distancia entre cada lixeira e o agente
+    this.lixeirasProximas = _.map(this.elementos[tipoLixeira],
+      function( item ) {
+        item.distancia = self.distanciaEntreDoisPontos(agente, item);
+        return item;
+      });
+    // ordena pela distancia
+    _.sortBy( this.lixeirasProximas, 'distancia' );
+
+    console.log(this.lixeirasProximas);
+
+    console.log('Ordena Lixeiras', tipoLixeira ,' por Proximidade');
+
+  };
+
+  App.fn.andarAteUmaLixeira = function ( callback ) {
+
+    var agente  = this.getAgenteAtual();
+    var lixeira = this.lixeirasProximas.shift();
+
+    var pontos = new DoisPontos( agente, lixeira, this.ambiente );
+    var rotas = pontos.getRotas();
+
+    this.passoAPassoAteLixeira( rotas, function () {
+      this.selecionarElementosNoAmbiente( [ agente , lixeira ] );
+      callback( lixeira );
+    }.bind(this));
+
+  };
+
+
+  App.fn.tentarEsvaziarSaco = function ( lixeira ) {
+
+    if ( lixeira.cheia() ) {
+      return false;
+    }
+
+    var agente = this.getAgenteAtual();
+    var tipoLixeira = lixeira.name;
+    var tipoLixo = tipoLixeira === LIXEIRA_ORGANICO ? LIXO_ORGANICO : LIXO_SECO;
+
+    _.each(agente.lixo[tipoLixo].splice(0), function( lixo ) {
+      this.elementos[tipoLixeira][lixeira.index].lixo.push(lixo);
+    }.bind(this));
+
+    this.selecionarElementosNoAmbiente( agente );
+
+    return true;
+
   };
 
 
@@ -544,32 +620,6 @@
 
     console.log('Anda Lateral pela', this.contaLateral, 'vez' );
 
-  };
-
-  App.fn.esvaziarSaco = function () {
-
-    console.log('#partiu_esvaziar');
-    var agente = this.getAgenteAtual();
-
-    var tipoLixo = agente.lixoCheio();
-    var tipoLixeira = tipoLixo === LIXO_ORGANICO ? LIXEIRA_ORGANICO : LIXEIRA_SECO;
-
-    // pega a lixeira disponivel mais proxima
-    var lixeira = this.elementos[tipoLixeira]
-                  .reduce(function( a, b ) {
-                    return this.distanciaEntreDoisPontos(agente, a) < this.distanciaEntreDoisPontos(agente, b) ? a : b;
-                  }.bind(this));
-
-    _.each(agente.lixo[tipoLixo].splice(0), function( lixo ) {
-      this.elementos[tipoLixeira][lixeira.index].lixo.push(lixo);
-    }.bind(this));
-
-
-    // var x = this.funcaoPontos( [ agente.x, agente.y ], [ lixeira.x, lixeira.y ] );
-
-    // console.log(x);
-
-    this.selecionarElementosNoAmbiente( agente );
   };
 
   App.fn.fim = function () {
