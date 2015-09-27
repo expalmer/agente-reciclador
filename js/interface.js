@@ -15,7 +15,11 @@
 
     this.dimensao = 0;
     this.debug = true;
+
+    // Command Line Vars
     this.iniciado = false;
+    this.auto     = false;
+    this.acao     = function () {};
 
     this.addEventListeners();
 
@@ -25,36 +29,11 @@
 
   Interface.fn.addEventListeners = function () {
 
-
-    // this.$body.on('keypress', function(e) {
-    //   if( e.charCode === 110 ) {
-
-    //   }
-    // }.bind(this));
-
     this.$command.on('keypress', function(e) {
       if( e.charCode === 13 ) {
         this.commandLine( e.target.value );
       }
     }.bind(this));
-
-
-
-    // Escolher a Dimensao do Vetor
-    // this.$init.on('click', '.button', function ( e ) {
-    //   self.dimensao = $(this).addClass('button-active').data('dimensao');
-    //   self.inicializarApp();
-    // });
-
-    // // Resetar o jogo
-    // this.$reset.on('click', function() {
-
-    // });
-
-    // Novo Ciclo
-    // this.$ciclo.on('click', function() {
-    //   self.app.novoCiclo();
-    // });
 
   };
 
@@ -90,7 +69,28 @@
         output.push("<span class='green'>-----------------------------------------</span>");
         output.push("<span class='green'> INICIADO </span>");
         output.push("<span class='green'>-----------------------------------------</span>");
-        output.push("Digite <span class='yellow'>ENTER</span> para cada ciclo");
+        output.push("Dê <span class='yellow'>ENTER</span> para cada ciclo");
+        output.push("Ou Digite <span class='yellow'>auto</span> para automático");
+      break;
+
+      case "auto":
+        if( false === this.iniciado || true === this.auto ) {
+          return false;
+        }
+        this.auto = true;
+        this.acao = setInterval(function(){
+          if( this.app.novoCiclo() ) {
+            clearInterval(this.acao);
+          }
+        }.bind(this), 1000);
+      break;
+
+      case "stop":
+        if( false === this.iniciado || false === this.auto ) {
+          return false;
+        }
+        this.auto = false;
+        clearInterval(this.acao);
       break;
 
       case "exit":
@@ -107,7 +107,7 @@
       break;
 
       default:
-        if( this.iniciado ) {
+        if( this.iniciado && this.auto === false ) {
           this.app.novoCiclo();
         }
     }
@@ -169,9 +169,7 @@
   };
 
   Interface.fn.render = function () {
-
     this.renderGrid();
-    // this.renderInfo();
   };
 
   Interface.fn.renderGrid = function () {
@@ -186,7 +184,7 @@
         var name = y.name ? y.name.toLowerCase() : '';
         var classe = name + ( name === "agente" ? y.index : ""  );
         var selected = y.selected ? " selected" : "";
-        var debug = self.debug ? self.debugSpan(y) : '';
+        var debug = self.debug ? self.infos(y) : '';
         if( y.name === LIXEIRA_ORGANICO || y.name === LIXEIRA_SECO ) {
           classe = y.cheia() ? classe + "_closed" : classe;
         }
@@ -202,7 +200,7 @@
 
   };
 
-  Interface.fn.debugSpan= function ( y ) {
+  Interface.fn.infos= function ( y ) {
     var res = [];
     switch(y.name){
     case AGENTE:
@@ -219,47 +217,6 @@
     });
     return res.length ? '<div class="info">' + res.join('') + '</div>' : '';
   }
-
-  Interface.fn.renderInfo = function () {
-
-    var self = this;
-    var html = [];
-    var vetor = this.app.elementos;
-
-    var infoTr = function ( index, name, b, c, vetor ) {
-      var name = name.toLowerCase();
-      var span = index !== false ? '<span>' + index + '</span>' : '';
-      var classe = name + ( name === "agente" ? index : ""  );
-      var selected = vetor && vetor.selected ? " selectedx" : "";
-      return '<tr><td><strong class="' + classe + selected + '">' + span + '</strong></td><td>' + b + '</td><td>'+ c +'</td></tr>';
-    }
-
-    // agentes
-    _.each( vetor[AGENTE], function( v, k ){
-      html.push( infoTr( k, v.name, v.lixo[LIXO_ORGANICO].length, v.lixo[LIXO_SECO].length, v) );
-    });
-
-    // lixeira_orga
-    _.each( vetor[LIXEIRA_ORGANICO], function( v, k ){
-      html.push( infoTr( k, v.name, v.lixo.length, '-' ) );
-    });
-
-    // lixeira_seco
-    _.each( vetor[LIXEIRA_SECO], function( v, k ){
-      html.push( infoTr( k, v.name, '-', v.lixo.length ) );
-    });
-
-    // lixo_orga
-    html.push( infoTr( false, "lixo_organico", vetor[LIXO_ORGANICO].length ,'-') );
-
-    // lixo_seco
-    html.push( infoTr( false, "lixo_seco", '-', vetor[LIXO_SECO].length) );
-
-    $.when( this.$info.html( html.join("") )).then(function() {
-      // console.log('info ok');
-    });
-
-  };
 
   context.Interface = Interface;
 

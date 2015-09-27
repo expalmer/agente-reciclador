@@ -321,9 +321,11 @@
 
     ++CICLO;
 
-    this.output( '<span class="green">Ciclo ' + CICLO + '</span>' );
+    this.output( 'Ciclo ' + CICLO, 'green' );
 
     this.emit( this.emitirEVENTO );
+
+    return this.ambienteLimpo();
 
   };
 
@@ -408,12 +410,8 @@
     }
 
     this.agenteINDEX = idx;
-    this.elementos[AGENTE] = this.elementos[AGENTE].map(function( v, k ) {
-      k === idx ? v.selected = true : v.selected = false;
-      return v;
-    });
-
     agente = this.pegarAgenteAtual();
+
     this.enviarParaInterface( agente );
 
     this.output( 'Agente selecionado' );
@@ -425,7 +423,7 @@
 
     var agente = this.pegarAgenteAtual();
     var ranges = this.getRange( agente.x, agente.y );
-    var temLixo = function ( a, b ) {
+    var verificar = function ( a, b ) {
       if( a && a.name === LIXO_ORGANICO || a.name === LIXO_SECO ) {
         return [ 0, a ];
       }
@@ -438,7 +436,7 @@
     //        top   right  bottom left
     var lixo = [ [0,1] ,[2,3] ,[4,5] ,[6,7] ]
             .map(function ( idx ) {
-              return temLixo( ranges[idx[0]], ranges[idx[1]] );
+              return verificar( ranges[idx[0]], ranges[idx[1]] );
             })
             .filter(function( i ) {
               return i;
@@ -450,8 +448,6 @@
     var res = this.lixo = lixo.pop();
 
     this.output( 'Possui Lixo em Volta ? ' + ( !!res ? 'Sim' : 'Não' ) );
-
-    console.log('Algum lixo no Range do Agente [', agente.index,'] ?', !!res);
 
     return res;
 
@@ -507,11 +503,13 @@
 
   App.fn.ordenarLixeirasParaVisitarPorProximidade = function () {
     var agente = this.pegarAgenteAtual();
+    // coloca a distancia de cada lixeira do agente
     this.lixeirasParaVisitar = _.map(this.lixeirasParaVisitar,
       function( item ) {
         item.distancia = this.distanciaEntreDoisPontos(agente, item);
         return item;
       }.bind(this));
+    // ordena por distancia
     this.lixeirasParaVisitar = _.sortBy( this.lixeirasParaVisitar, 'distancia' );
   };
 

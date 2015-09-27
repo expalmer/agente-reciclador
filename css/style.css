@@ -255,8 +255,6 @@ body {
   border-bottom-left-radius: 0;
 }
 
-
-
 .selected {
   box-shadow: 0 0 20px 2px #FFF;
   animation: glow 1.25s 0.3s infinite linear;
