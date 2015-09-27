@@ -17,7 +17,6 @@
     var CONTINUAR = true;
     var oriCurrent = this.origem;
     var moves;
-    var steps = [];
     var aux;
     var movs = [];
     var chegou = false;
@@ -27,10 +26,9 @@
     while( ( CONTINUAR ) && ( times-- > 0 )  ) {
 
       moves = this.defineMovimentos( oriCurrent );
-      aux = this.movimentar( oriCurrent, moves );
-      oriCurrent = aux[3];
+      oriCurrent = this.movimentar( oriCurrent, moves );
       movs.push( oriCurrent );
-      steps.push( aux.splice(0,3) );
+      // steps.push( aux.splice(0,3) );
       if( !oriCurrent ) {
         CONTINUAR = false;
         console.log("TRANCADO");
@@ -40,7 +38,6 @@
         console.log("CHEGOU");
       }
     }
-    // console.log(steps);
     return movs;
 
   };
@@ -138,7 +135,9 @@
 
     stack.push( obj );
 
-    return [ [x, y], moves, stackMoveSelected, obj.moves[stackMoveSelected] ];
+    return obj.moves[stackMoveSelected];
+
+    // return [ [x, y], moves, stackMoveSelected, obj.moves[stackMoveSelected] ];
 
   }
 

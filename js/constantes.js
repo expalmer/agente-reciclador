@@ -3,4 +3,4 @@ var LIXEIRA_ORGANICO = 'LIXEIRA_ORGANICO';
 var LIXEIRA_SECO = 'LIXEIRA_SECO';
 var LIXO_ORGANICO = 'LIXO_ORGANICO';
 var LIXO_SECO = 'LIXO_SECO';
-  
+var AGENTES = [ 'Ibsen', 'Diego', 'Eric', 'Palmer' ];

@@ -4,25 +4,25 @@
 
   var CICLO = 0;
 
-  function App( dimensao, renderInterface ) {
+  function App( dimensao, renderInterface, outputInterface ) {
 
     this.dimensao = dimensao;
     this.ambiente = [];
     this.elementos = {};
     this.renderInterface = renderInterface;
+    this.outputInterface = outputInterface;
 
     this.agenteINDEX = null; //index do agente atual
     this.lixo = false;
 
     this.emitirEVENTO = 'onSelecionarAgente';
     this.eventosDosCiclos();
-    this.contaAleatorio = 0;
-    this.contaLateral = 0;
+    this.andouAleatoriamente = 0;
+    this.andouLateralmente = 0;
 
     this.lixeirasParaVisitar = [];
 
   }
-
 
   App.fn = App.prototype;
 
@@ -39,20 +39,31 @@
 
   };
 
-  // Inicializar Vetor
+  // Incializar os vetores vazios
   App.fn.inicializarVetores = function () {
-    this.ambiente = [];
-    this.elementos = {};
-    this.elementos[AGENTE] = [];
-    this.elementos[LIXEIRA_ORGANICO] = [];
-    this.elementos[LIXEIRA_SECO] = [];
-    this.elementos[LIXO_ORGANICO] = [];
-    this.elementos[LIXO_SECO] = [];
+    this.ambiente                     = [];
+    this.elementos                    = {};
+    this.elementos[AGENTE]            = [];
+    this.elementos[LIXEIRA_ORGANICO]  = [];
+    this.elementos[LIXEIRA_SECO]      = [];
+    this.elementos[LIXO_ORGANICO]     = [];
+    this.elementos[LIXO_SECO]         = [];
   };
 
-  // Ambiente
+  // mensagens para a interface
+  App.fn.output = function ( msg, cor ) {
+    if( false === _.isArray( msg ) ) {
+      msg = [ msg ];
+    }
+    msg = msg.map(function(m) {
+      return '<span class="' + cor + '">' + m + '</span>';
+    });
+
+    this.outputInterface([ msg ]);
+  };
+
+  // Cria o Ambiente vazio, apenas um com objeto padrão
   App.fn.criarAmbiente = function () {
-    // cria um ambiente vazio
     var tam = this.dimensao;
     this.ambiente = Array.apply(0, Array(tam) ).map( function ( a, x ) {
       return Array.apply(0, Array(tam) ).map( function( b, y ) {
@@ -66,11 +77,12 @@
       });
   };
 
-  App.fn.addElementoNoAmbiente = function ( item, coordenadas ) {
+
+  App.fn.adicionaElementoNoAmbiente = function ( item, coordenadas ) {
     this.ambiente[coordenadas.x][coordenadas.y] = item;
   };
 
-  // Cria os Elementos
+  // Cria cada um dos Elementos (Agentes, Lixeiras e Lixos)
   App.fn.criarOsElementos = function () {
 
     var self = this;
@@ -95,8 +107,6 @@
     var totais = obj[this.dimensao];
 
     var limiteLixo = totais.lixos / totais.agentes;
-
-    console.log(totais);
 
     // Cria os Agentes
     _.times( totais.agentes, function( i ) {
@@ -143,56 +153,58 @@
         self.elementos[ LIXO_SECO ].push({ name: LIXO_SECO });
       });
 
-    return false;
   };
 
 
-  // sujar
+  // Coloca os Lixos no Ambiente
   App.fn.colocarLixosNoAmbiente = function () {
 
     var self = this;
-
     // Lixos
     _.each([ LIXO_ORGANICO, LIXO_SECO ], function( nome ) {
       self.elementos[ nome ] = _.map(self.elementos[ nome ], function( item, index ) {
         var coordenadas = self.getLugarSeguroNoAmbiente();
-        self.addElementoNoAmbiente( item, coordenadas );
+        self.adicionaElementoNoAmbiente( item, coordenadas );
         item.x = coordenadas.x;
         item.y = coordenadas.y;
         return item;
       });
     });
+
   };
 
-  // lixeiras
+  // Coloca as Lixeiras no Ambiente
   App.fn.colocarLixeirasNoAmbiente = function () {
 
     var self = this;
     _.each([ LIXEIRA_ORGANICO, LIXEIRA_SECO ], function( nome ) {
       self.elementos[ nome ] = _.map(self.elementos[ nome ], function( item, index ) {
         var coordenadas = self.getLugarSeguroNoAmbiente();
-        self.addElementoNoAmbiente( item, coordenadas );
+        self.adicionaElementoNoAmbiente( item, coordenadas );
         item.x = coordenadas.x;
         item.y = coordenadas.y;
         return item;
       });
     });
+
   };
 
-  // agentes
+  // Coloca os Agentes no Ambiente
   App.fn.colocarAgentesNoAmbiente = function () {
 
     var self = this;
     this.elementos[AGENTE] = _.map( this.elementos[AGENTE], function( item ) {
         var coordenadas = self.getLugarSeguroNoAmbiente();
-        self.addElementoNoAmbiente( item, coordenadas );
+        self.adicionaElementoNoAmbiente( item, coordenadas );
         item.x = coordenadas.x;
         item.y = coordenadas.y;
         return item;
       });
+
   };
 
   App.fn.getLugarSeguroNoAmbiente = function ( regras ) {
+
     var vazio = false;
     var lugar, x, y;
     while( false === vazio ) {
@@ -206,15 +218,14 @@
     }
 
   };
-  // ==========================================================================
-  // FUNCOES AUXILIARES PARA ACESSAR OS ELEMENTOS
-  // ==========================================================================
 
-  App.fn.getAgenteAtual = function () {
-    return this.elementos[AGENTE][this.agenteINDEX];
-  };
 
-  App.fn.selecionarElementosNoAmbiente = function ( vetor ) {
+
+
+  // ==========================================================================
+  // AVISAR INTERFACE DAS MUDANCAS NO APP, E FAZER BRILHAR ALGUNS :)
+  // ==========================================================================
+  App.fn.enviarParaInterface = function ( vetor ) {
 
     var self = this;
     if( false === _.isArray( vetor ) ) vetor = [vetor];
@@ -234,6 +245,14 @@
 
     this.renderInterface();
 
+  };
+
+  // ==========================================================================
+  // FUNCOES AUXILIARES
+  // ==========================================================================
+
+  App.fn.pegarAgenteAtual = function () {
+    return this.elementos[AGENTE][this.agenteINDEX] || false;
   };
 
   App.fn.getRange = function (x, y) {
@@ -263,40 +282,10 @@
     return Math.round( Math.sqrt( (x2-=x1)*x2 + (y2-=y1)*y2 ) );
   }
 
-
-  // mostra rota até a lixeira, passar o agente e a lixeira
-  App.fn.funcaoPontos = function ( origem , destino ) {
-    var orig = origem; //copia o array origem e destino
-    var dest = destino;
-    var movimentos = [];
-    while(orig[0] != dest[0] && orig[1] != dest[1]){ //loop para n parar até terminar simulação
-      while(orig[0] != dest[0]){ //loop para n terminar até o x orig for o mesmo de dest
-        if(orig[0] > dest[0] && this.ambiente[orig[0]-1][orig[1]].name == null){
-          orig[0]-=1;
-          movimentos.push([orig[0],orig[1]]);
-        }else if(this.ambiente[orig[0]+1][orig[1]].name == null){
-          orig[0]+=1;
-          movimentos.push([orig[0],orig[1]]);
-        }
-      }
-      while(orig[1] != dest[1]){ //loop para n terminar até o y orig for o mesmo de dest
-        if(orig[1] > dest[1] && this.ambiente[orig[0]][orig[1]-1].name == null){
-          orig[1]-=1;
-          movimentos.push([orig[0],orig[1]]);
-        }else if(this.ambiente[orig[0]][orig[1]+1].name == null){
-          orig[1]+=1;
-          movimentos.push([orig[0],orig[1]]);
-        }
-      }
-    }
-    console.log(movimentos);
-    return movimentos;
-  };
-
   App.fn.passoAPassoAteLixeira = function ( movimentos, callback ) {
 
     var self = this;
-    var agente = this.getAgenteAtual();
+    var agente = this.pegarAgenteAtual();
     var time = 0;
     var timout = 300;
     var total = movimentos.length - 1;
@@ -311,7 +300,7 @@
       agente.x = arr.x;
       agente.y = arr.y;
       this.ambiente[agente.x][agente.y] = agente;
-      this.selecionarElementosNoAmbiente( agente );
+      this.enviarParaInterface( agente );
       if( isLast ) {
         callback();
       }
@@ -320,18 +309,20 @@
   };
 
   // ==========================================================================
-  // ACOES DO JOGO
+  // EVENTOS
   // ==========================================================================
 
   App.fn.novoCiclo = function () {
 
     if( !this.emitirEVENTO ) {
-      console.log('....aguarde....');
+      this.output( '...aguarde...' );
       return false;
     }
 
     ++CICLO;
-    console.log('CICLO', CICLO);
+
+    this.output( '<span class="green">Ciclo ' + CICLO + '</span>' );
+
     this.emit( this.emitirEVENTO );
 
   };
@@ -377,12 +368,12 @@
         return;
       }
 
-      if ( this.contaAleatorio === 3 ) {
+      if ( this.andouAleatoriamente === 3 ) {
         this.andarLateralmente();
         return;
       }
 
-      if( this.contaLateral === 3 ) {
+      if( this.andouLateralmente === 3 ) {
         this.emit('onSelecionarAgente');
         return;
       }
@@ -394,15 +385,22 @@
 
   };
 
+  // ==========================================================================
+  // FUNCOES DOS EVENTOS
+  // ==========================================================================
+
   App.fn.selecionarAgente= function() {
 
-    // seleciona um agente excluindo o agente atual
+    // toda vez que selecionamos um agente, zeramos as vezes que andou
+    this.andouAleatoriamente = 0;
+    this.andouLateralmente = 0;
 
-    this.contaAleatorio = 0;
-    this.contaLateral = 0;
-    var agente = this.getAgenteAtual() || false;
+
     var max = this.elementos[AGENTE].length - 1;
     var idx = _.random(0, max);
+    var agente = this.pegarAgenteAtual();
+    // se o agente escolhido acima for o mesmo que já estava, entao
+    // fica tentando outro
     if( agente && agente.index === idx ) {
       while( agente.index === idx ) {
         idx = _.random(0, max);
@@ -415,19 +413,17 @@
       return v;
     });
 
-    var agente = this.getAgenteAtual();
+    agente = this.pegarAgenteAtual();
+    this.enviarParaInterface( agente );
 
-    this.selecionarElementosNoAmbiente( agente );
+    this.output( 'Agente selecionado' );
 
-    this.contaAleatorio = 0;
-
-    console.log('Agente Selecionado' );
   };
 
 
   App.fn.temLixoNoRange = function () {
 
-    var agente = this.getAgenteAtual();
+    var agente = this.pegarAgenteAtual();
     var ranges = this.getRange( agente.x, agente.y );
     var temLixo = function ( a, b ) {
       if( a && a.name === LIXO_ORGANICO || a.name === LIXO_SECO ) {
@@ -453,6 +449,8 @@
 
     var res = this.lixo = lixo.pop();
 
+    this.output( 'Possui Lixo em Volta ? ' + ( !!res ? 'Sim' : 'Não' ) );
+
     console.log('Algum lixo no Range do Agente [', agente.index,'] ?', !!res);
 
     return res;
@@ -461,10 +459,10 @@
 
   App.fn.recolherLixo = function () {
 
-    var agente = this.getAgenteAtual();
+    var agente = this.pegarAgenteAtual();
     var lixo   = this.lixo;
 
-    this.selecionarElementosNoAmbiente( [ agente, lixo ] );
+    this.enviarParaInterface( [ agente, lixo ] );
 
     this.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
     agente.lixo[lixo.name].push( this.elementos[lixo.name].splice(lixo.index,1) );
@@ -472,12 +470,12 @@
     agente.y = lixo.y;
     this.ambiente[lixo.x][lixo.y] = agente;
 
-    this.contaAleatorio = 0;
+    this.output( 'Recolhe o Lixo' );
 
     console.log('Agente pega o lixo!');
 
     setTimeout(function(){
-      this.selecionarElementosNoAmbiente( agente );
+      this.enviarParaInterface( agente );
     }.bind(this),1000);
 
   };
@@ -490,7 +488,7 @@
 
   // Lixeiras
   App.fn.agenteDeSacoCheio= function() {
-    var res = this.getAgenteAtual().lixoCheio();
+    var res = this.pegarAgenteAtual().lixoCheio();
     console.log('Agente está com algum saco cheio ?', res);
     return res;
   };
@@ -498,7 +496,7 @@
   App.fn.criarLixeirasParaVisitar = function () {
 
     var self = this;
-    var agente = this.getAgenteAtual();
+    var agente = this.pegarAgenteAtual();
 
     var tipoLixo = agente.lixoCheio();
     var tipoLixeira = tipoLixo === LIXO_ORGANICO ? LIXEIRA_ORGANICO : LIXEIRA_SECO;
@@ -508,7 +506,7 @@
   };
 
   App.fn.ordenarLixeirasParaVisitarPorProximidade = function () {
-    var agente = this.getAgenteAtual();
+    var agente = this.pegarAgenteAtual();
     this.lixeirasParaVisitar = _.map(this.lixeirasParaVisitar,
       function( item ) {
         item.distancia = this.distanciaEntreDoisPontos(agente, item);
@@ -526,7 +524,7 @@
     });
 
 
-    var agente  = this.getAgenteAtual();
+    var agente  = this.pegarAgenteAtual();
     var lixeira = this.lixeirasParaVisitar.shift();
 
     console.log(agente.name, agente.x, agente.y);
@@ -535,8 +533,10 @@
     var pontos = new DoisPontos( agente, lixeira, this.ambiente );
     var rotas = pontos.getRotas();
 
+    this.output( 'Andando até uma lixeira...' );
     this.passoAPassoAteLixeira( rotas, function () {
-      this.selecionarElementosNoAmbiente( [ agente , lixeira ] );
+      this.enviarParaInterface( [ agente , lixeira ] );
+      this.output( 'Chegou na lixeira' );
       callback( lixeira );
     }.bind(this));
 
@@ -546,10 +546,11 @@
   App.fn.tentarEsvaziarSaco = function ( lixeira ) {
 
     if ( lixeira.cheia() ) {
+      this.output( 'Lixeira Cheia!' );
       return false;
     }
 
-    var agente = this.getAgenteAtual();
+    var agente = this.pegarAgenteAtual();
     var tipoLixeira = lixeira.name;
     var tipoLixo = tipoLixeira === LIXEIRA_ORGANICO ? LIXO_ORGANICO : LIXO_SECO;
 
@@ -557,8 +558,9 @@
       this.elementos[tipoLixeira][lixeira.index].lixo.push(lixo);
     }.bind(this));
 
-    this.selecionarElementosNoAmbiente( agente );
+    this.enviarParaInterface( agente );
 
+    this.output( 'Esvaziou o Saco!' );
     return true;
 
   };
@@ -566,12 +568,12 @@
 
   App.fn.andarAleatorimente = function () {
 
-    this.contaAleatorio++;
+    this.andouAleatoriamente++;
 
-    var agente = this.getAgenteAtual();
+    var agente = this.pegarAgenteAtual();
     var ranges = this.getRange( agente.x, agente.y );
 
-    this.selecionarElementosNoAmbiente( ranges );
+    this.enviarParaInterface( ranges );
 
     var pos = ranges.reduce( function( acc, curr, index, array ) {
       if( index%2 ) {
@@ -590,19 +592,19 @@
     this.ambiente[agente.x][agente.y] = agente;
 
     setTimeout(function () {
-      this.selecionarElementosNoAmbiente( [ agente, pos ] );
+      this.enviarParaInterface( [ agente, pos ] );
     }.bind(this), 1000);
 
-    console.log('Anda Aleatório pela', this.contaAleatorio, 'vez' );
+    this.output( 'Anda Aleatório pela ' + this.andouAleatoriamente + ' vez ' );
 
   };
 
   App.fn.andarLateralmente = function () {
 
-    this.contaLateral++;
-    this.contaAleatorio = 0;
+    this.andouLateralmente++;
+    this.andouAleatoriamente = 0;
 
-    var agente = this.getAgenteAtual();
+    var agente = this.pegarAgenteAtual();
     var ranges = this.ambiente[agente.x];
     var left, right, pos, idx;
     var reducer = function(acc,curr){
@@ -615,7 +617,7 @@
     right = ranges.slice(agente.y+1).reverse().reduce( reducer, [] );
     ranges = left.concat(right);
 
-    this.selecionarElementosNoAmbiente( ranges );
+    this.enviarParaInterface( ranges );
 
     idx =_.random(0, ranges.length-1);
     pos = ranges[idx];
@@ -625,16 +627,15 @@
     agente.y = pos.y;
     this.ambiente[agente.x][agente.y] = agente;
 
-    setTimeout(function() { this.selecionarElementosNoAmbiente( agente ); }.bind(this), 1300);
+    setTimeout(function() { this.enviarParaInterface( agente ); }.bind(this), 1300);
 
-    console.log('Anda Lateral pela', this.contaLateral, 'vez' );
+    this.output( 'Anda Lateral pela ' + this.andouLateralmente + ' vez ' );
 
   };
 
   App.fn.fim = function () {
     this.novoCiclo = function() {};
-    console.log('FIM do PROGRAMA com ', CICLO, 'Ciclos!');
-
+    this.output( 'FIM => ' + CICLO + ' Ciclos', 'red' );
   };
 
 

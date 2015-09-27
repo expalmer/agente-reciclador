@@ -6,33 +6,35 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="side">
-    <div class="row">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>NOME</th>
-            <th>ORGA</th>
-            <th>SECO</th>
-          </tr>
-        </thead>
-        <tbody id="info"></tbody>
-      </table>
+
+  <div class="terminal">
+    <div class="shell">
+      <div class="upper">
+        <div class="btn red"></div>
+        <div class="btn yellow"></div>
+        <div class="btn green"></div>
+      </div>
+      <div class="screen">
+        <p>
+          <span class="symbol">$</span>
+          <input type="text" placeholder="help" id="command">
+        </p>
+        <div id="output"></div>
+      </div>
     </div>
   </div>
+
+  <!-- <div id="init" class="init hide">
+    <span class="button-group">
+      <button class="button" data-dimensao="10">10 x 10</button>
+      <button class="button" data-dimensao="20">20 x 20</button>
+      <button class="button" data-dimensao="30">30 x 30</button>
+    </span>
+  </div> -->
+
+
   <div class="content">
-    <p id="init" class="hide">
-      <span class="button-group">
-        <button class="button" data-dimensao="10">10 x 10</button>
-        <button class="button" data-dimensao="20">20 x 20</button>
-        <button class="button button-" data-dimensao="30">30 x 30</button>
-      </span>
-    </p>
     <div id="start" class="hide">
-      <p>
-        <button class="button button-success" id="ciclo">Novo Ciclo</button>
-        <button class="button button-error" id="reset">&times;</button>
-      </p>
       <div class="box" id="grid"></div>
     </div>
   </div>
@@ -46,7 +48,7 @@
   <script>
     $(function() {
       var app = new Interface();
-      // $('#init').find('button').eq(1).trigger('click');
+      // $('#init').find('button').eq(0).trigger('click');
 
       /*window.z = function() {
         setInterval(function(){
