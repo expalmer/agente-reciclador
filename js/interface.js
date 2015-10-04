@@ -10,6 +10,7 @@
     this.$command = $('#command');
     this.$output = $('#output');
     this.$grid = $('#grid');
+    this.$terminal = $('#terminal');
 
     this.$command.focus();
 
@@ -35,12 +36,20 @@
       }
     }.bind(this));
 
+    $('body').on('keypress', function(e) {
+      if( e.charCode === 43 ) {
+        e.preventDefault();
+        this.$terminal.toggleClass('retract');
+      }
+    }.bind(this));
+
   };
 
   Interface.fn.commandLine = function ( value ) {
 
     var output = [];
     var clear = false;
+    var delay = 1000;
 
     switch( value ) {
 
@@ -65,7 +74,9 @@
         this.dimensao = +value;
         this.inicializar();
         this.iniciado = true;
+        this.auto = false;
         clear = true;
+
         output.push("<span class='green'>-----------------------------------------</span>");
         output.push("<span class='green'> INICIADO </span>");
         output.push("<span class='green'>-----------------------------------------</span>");
@@ -74,15 +85,17 @@
       break;
 
       case "auto":
+      case "fast":
         if( false === this.iniciado || true === this.auto ) {
           return false;
         }
+        delay = value === "fast" ? 1 : delay;
         this.auto = true;
         this.acao = setInterval(function(){
           if( this.app.novoCiclo() ) {
             clearInterval(this.acao);
           }
-        }.bind(this), 1000);
+        }.bind(this), delay);
       break;
 
       case "stop":

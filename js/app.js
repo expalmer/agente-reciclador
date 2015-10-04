@@ -2,15 +2,15 @@
 
   'use strict';
 
-  var CICLO = 0;
+  var CICLO = 0; // var que controla a quantidade de ciclos
 
   function App( dimensao, renderInterface, outputInterface ) {
 
-    this.dimensao = dimensao;
-    this.ambiente = [];
+    this.dimensao  = dimensao;
+    this.ambiente  = [];
     this.elementos = {};
-    this.renderInterface = renderInterface;
-    this.outputInterface = outputInterface;
+    this.renderInterface = renderInterface; // fn que envia o estado atual dos elementos para a interface
+    this.outputInterface = outputInterface; // fn que enviar os logs de cada ação dos ciclos
 
     this.agenteINDEX = null; //index do agente atual
     this.lixo = false;
@@ -219,9 +219,6 @@
 
   };
 
-
-
-
   // ==========================================================================
   // AVISAR INTERFACE DAS MUDANCAS NO APP, E FAZER BRILHAR ALGUNS :)
   // ==========================================================================
@@ -289,69 +286,64 @@
     var time = 0;
     var timout = 300;
     var total = movimentos.length - 1;
-
-    _.each(movimentos, function( arr, index ) {
-      time += timout;
-      setTimeout( move.bind(self, arr, agente, index === total ), time );
-    });
-
-    function move( arr, agente, isLast ) {
-      this.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
-      agente.x = arr.x;
-      agente.y = arr.y;
-      this.ambiente[agente.x][agente.y] = agente;
+    var andar = function( elemento, agente, isLast ) {
+      this.moveAgente( agente, elemento );
       this.enviarParaInterface( agente );
       if( isLast ) {
         callback();
       }
-    }
+    };
+
+    _.each(movimentos, function( arr, index ) {
+      time += timout;
+      setTimeout( andar.bind(self, arr, agente, index === total ), time );
+    });
 
   };
 
+  App.fn.moveAgente = function ( agente, elemento ) {
+    this.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
+    agente.x = elemento.x;
+    agente.y = elemento.y;
+    this.ambiente[agente.x][agente.y] = agente;
+  };
+
   // ==========================================================================
-  // EVENTOS
+  // EVENTOS -
   // ==========================================================================
 
+  // A FUNCAO QUE CHAMA CADA CICLO
   App.fn.novoCiclo = function () {
 
+    // se a var ta vazia, entao mostra aguarde
     if( !this.emitirEVENTO ) {
       this.output( '...aguarde...' );
       return false;
     }
 
+    // conta ciclos
     ++CICLO;
 
+    // mostra o ciclo
     this.output( 'Ciclo ' + CICLO, 'green' );
 
+    // emite o evento que foi colocado na var
     this.emit( this.emitirEVENTO );
 
+    // sempre retorna se o ambiente está limpo, para a interface saber
     return this.ambienteLimpo();
 
   };
 
   App.fn.eventosDosCiclos = function () {
 
-    // Evento: Selecionar Agente
+    // (EVENTO): Selecionar Agente
     this.on('onSelecionarAgente', function() {
       this.selecionarAgente();
       this.emit('onTemLixoNoRange');
     }.bind(this));
 
-    // Evento: Andar até Lixeira
-    this.on('onAndarAteUmaLixeira', function() {
-      console.log('onAndarAteUmaLixeira');
-      // aguarda chegar ate a lixeira
-      this.andarAteUmaLixeira( function( lixeira ) {
-        if( this.tentarEsvaziarSaco( lixeira ) ) {
-          this.emitirEVENTO = 'onTemLixoNoRange';
-        } else {
-          this.emitirEVENTO = 'onAndarAteUmaLixeira';
-        }
-      }.bind(this));
-      this.emitirEVENTO = 0;
-    }.bind(this));
-
-    // Evento: Tem Lixo no Range
+    // (EVENTO): Tem Lixo no Range
     this.on('onTemLixoNoRange', function() {
 
       this.emitirEVENTO = 'onTemLixoNoRange';
@@ -382,6 +374,19 @@
 
       this.andarAleatorimente();
 
+    }.bind(this));
+
+    // (EVENTO): Andar até Lixeira
+    this.on('onAndarAteUmaLixeira', function() {
+      this.emitirEVENTO = 0;
+      // aguarda chegar ate a lixeira
+      this.andarAteUmaLixeira( function( lixeira ) {
+        if( this.tentarEsvaziarSaco( lixeira ) ) {
+          this.emitirEVENTO = 'onTemLixoNoRange';
+        } else {
+          this.emitirEVENTO = 'onAndarAteUmaLixeira';
+        }
+      }.bind(this));
 
     }.bind(this));
 
@@ -396,7 +401,6 @@
     // toda vez que selecionamos um agente, zeramos as vezes que andou
     this.andouAleatoriamente = 0;
     this.andouLateralmente = 0;
-
 
     var max = this.elementos[AGENTE].length - 1;
     var idx = _.random(0, max);
@@ -517,16 +521,8 @@
 
     this.ordenarLixeirasParaVisitarPorProximidade();
 
-    _.each(this.lixeirasParaVisitar, function(l) {
-      console.log('=>', l.x,l.y, l.distancia );
-    });
-
-
     var agente  = this.pegarAgenteAtual();
     var lixeira = this.lixeirasParaVisitar.shift();
-
-    console.log(agente.name, agente.x, agente.y);
-    console.log(lixeira.name, lixeira.x, lixeira.y);
 
     var pontos = new DoisPontos( agente, lixeira, this.ambiente );
     var rotas = pontos.getRotas();
@@ -573,7 +569,7 @@
 
     this.enviarParaInterface( ranges );
 
-    var pos = ranges.reduce( function( acc, curr, index, array ) {
+    var posicao = ranges.reduce( function( acc, curr, index, array ) {
       if( index%2 ) {
         if( array[index-1].name === null && curr.name === null ) acc.push( curr );
       } else {
@@ -583,15 +579,11 @@
       return acc;
     },[]);
 
-    this.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
-    agente.x = pos.x;
-    agente.y = pos.y;
-
-    this.ambiente[agente.x][agente.y] = agente;
-
     setTimeout(function () {
-      this.enviarParaInterface( [ agente, pos ] );
+      this.enviarParaInterface( [ _.clone(agente), _.clone(posicao) ] );
     }.bind(this), 1000);
+
+    this.moveAgente( agente, posicao );
 
     this.output( 'Anda Aleatório pela ' + this.andouAleatoriamente + ' vez ' );
 
@@ -604,7 +596,10 @@
 
     var agente = this.pegarAgenteAtual();
     var ranges = this.ambiente[agente.x];
-    var left, right, pos, idx;
+    var left,
+        right,
+        posicao,
+        idx;
     var reducer = function(acc,curr){
       if ( curr.name === null ) acc.push( curr );
       else acc = [];
@@ -618,14 +613,14 @@
     this.enviarParaInterface( ranges );
 
     idx =_.random(0, ranges.length-1);
-    pos = ranges[idx];
+    posicao = ranges[idx];
 
-    this.ambiente[agente.x][agente.y] = { name: null, index: null, x: agente.x, y: agente.y };
-    agente.x = pos.x;
-    agente.y = pos.y;
-    this.ambiente[agente.x][agente.y] = agente;
+    setTimeout(function() {
+      this.enviarParaInterface( _.clone(agente) );
+    }.bind(this), 1300);
 
-    setTimeout(function() { this.enviarParaInterface( agente ); }.bind(this), 1300);
+    this.moveAgente( agente, posicao );
+
 
     this.output( 'Anda Lateral pela ' + this.andouLateralmente + ' vez ' );
 
@@ -636,9 +631,6 @@
     this.output( 'FIM => ' + CICLO + ' Ciclos', 'red' );
   };
 
-
   context.App = App;
 
-
 })(this);
-

@@ -7,7 +7,7 @@
 </head>
 <body>
 
-  <div class="terminal">
+  <div class="terminal" id="terminal">
     <div class="shell">
       <div class="upper">
         <div class="btn red"></div>
@@ -24,15 +24,6 @@
     </div>
   </div>
 
-  <!-- <div id="init" class="init hide">
-    <span class="button-group">
-      <button class="button" data-dimensao="10">10 x 10</button>
-      <button class="button" data-dimensao="20">20 x 20</button>
-      <button class="button" data-dimensao="30">30 x 30</button>
-    </span>
-  </div> -->
-
-
   <div class="content">
     <div id="start" class="hide">
       <div class="box" id="grid"></div>
@@ -48,13 +39,6 @@
   <script>
     $(function() {
       var app = new Interface();
-      // $('#init').find('button').eq(0).trigger('click');
-
-      /*window.z = function() {
-        setInterval(function(){
-        $('#ciclo').trigger('click');
-      },100);
-      }*/
     });
   </script>
 </body>

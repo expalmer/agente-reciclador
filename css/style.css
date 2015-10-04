@@ -21,6 +21,9 @@ body {
   height: 97%;
   z-index: 9999;
 }
+.retract {
+  left: -288px;
+}
 
 .shell {
   margin: 0 auto;
